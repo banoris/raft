@@ -143,6 +143,7 @@ func (s *Server) DisconnectPeer(peerId int) error {
 	return nil
 }
 
+// TODO: why 'args' and 'reply' as empty interface?
 func (s *Server) Call(id int, serviceMethod string, args interface{}, reply interface{}) error {
 	s.mu.Lock()
 	peer := s.peerClients[id]
@@ -167,6 +168,8 @@ type RPCProxy struct {
 	cm *ConsensusModule
 }
 
+// NOTE: this is just a wrapper for ConsensusModule.RequestVote.
+// Add some delays or simulate flaky network by dropping the msg
 func (rpp *RPCProxy) RequestVote(args RequestVoteArgs, reply *RequestVoteReply) error {
 	if len(os.Getenv("RAFT_UNRELIABLE_RPC")) > 0 {
 		dice := rand.Intn(10)

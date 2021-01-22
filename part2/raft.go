@@ -474,6 +474,10 @@ func (cm *ConsensusModule) leaderSendHeartbeats() {
 	for _, peerId := range cm.peerIds {
 		go func(peerId int) {
 			cm.mu.Lock()
+			// TODO: understand how a leader keeps track by how many entries are a
+			// particular follower doesn't have Sort of like bookkeeping for all
+			// followers. This node hasn't receive these many entries, that node is be
+			// behind by these many entries, etc.
 			ni := cm.nextIndex[peerId]
 			prevLogIndex := ni - 1
 			prevLogTerm := -1

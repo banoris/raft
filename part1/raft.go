@@ -175,6 +175,7 @@ type AppendEntriesReply struct {
 	Success bool
 }
 
+// AppendEntries RPC
 func (cm *ConsensusModule) AppendEntries(args AppendEntriesArgs, reply *AppendEntriesReply) error {
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
@@ -190,6 +191,7 @@ func (cm *ConsensusModule) AppendEntries(args AppendEntriesArgs, reply *AppendEn
 
 	reply.Success = false
 	if args.Term == cm.currentTerm {
+		// TODO: why need this case?
 		if cm.state != Follower {
 			cm.becomeFollower(args.Term)
 		}
@@ -238,6 +240,8 @@ func (cm *ConsensusModule) runElectionTimer() {
 		<-ticker.C
 
 		cm.mu.Lock()
+		// Huh? If you are not Candidate or Follower, then you must be
+		// leader right? Or Dead
 		if cm.state != Candidate && cm.state != Follower {
 			cm.dlog("in election timer state=%s, bailing out", cm.state)
 			cm.mu.Unlock()
@@ -284,6 +288,9 @@ func (cm *ConsensusModule) startElection() {
 
 			cm.dlog("sending RequestVote to %d: %+v", peerId, args)
 			if err := cm.server.Call(peerId, "ConsensusModule.RequestVote", args, &reply); err == nil {
+				// NOTE: startElection expects cm.mu to be locked. Is this lock reentrant?
+				// This op is run in a goroutine. In fact, the whole startElection() is
+				// not blocking
 				cm.mu.Lock()
 				defer cm.mu.Unlock()
 				cm.dlog("received RequestVoteReply %+v", reply)
@@ -299,7 +306,10 @@ func (cm *ConsensusModule) startElection() {
 					return
 				} else if reply.Term == savedCurrentTerm {
 					if reply.VoteGranted {
+						// NOTE: why need atomic? Coz `votes` is shared by multiple
+						// goroutines. To safely write on it, use atomic
 						votes := int(atomic.AddInt32(&votesReceived, 1))
+						// TODO: where does this magic formula comes from?
 						if votes*2 > len(cm.peerIds)+1 {
 							// Won the election!
 							cm.dlog("wins election with %d votes", votes)

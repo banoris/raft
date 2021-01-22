@@ -535,6 +535,9 @@ func (cm *ConsensusModule) becomeFollower(term int) {
 func (cm *ConsensusModule) startLeader() {
 	cm.state = Leader
 
+	// @3:30 https://www.youtube.com/watch?v=4r8Mz3MMivY
+	// when you become a leader, set nextIndex for followers to
+	// the next entry of your log, i.e., len(cm.log)
 	for _, peerId := range cm.peerIds {
 		cm.nextIndex[peerId] = len(cm.log)
 		cm.matchIndex[peerId] = -1
@@ -652,6 +655,7 @@ func (cm *ConsensusModule) leaderSendAEs() {
 							cm.newCommitReadyChan <- struct{}{}
 							cm.triggerAEChan <- struct{}{}
 						}
+					// follower rejects AE. What should leader do? Refer paper Fig2
 					} else {
 						if reply.ConflictTerm >= 0 {
 							lastIndexOfTerm := -1

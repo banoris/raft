@@ -17,6 +17,34 @@ as possible. Each directory is completely self contained and can be read and
 undestood in isolation. Using a graphical diff tool to see the deltas between
 the parts can be instructional.
 
+## Useful resources
+
+Raft Paper Figure 2. Compare it side-by-side with the codes at `raft.go`
+
+[Raft lecture (Raft user study) - YouTube](https://www.youtube.com/watch?v=YbZ3zDzDnrw) -- Not bad for high-level overview, refer MIT lecture below that is more geared towards implementation details.
+
+[Lecture 5: Go, Threads, and Raft - YouTube](https://www.youtube.com/watch?v=UzzcUS2OHqo&list=PLrw6a1wE39_tb2fErI4-WkMbsvGQk9_UB&index=5) -- discusses implementation details. E.g. pitfalls, concurrent programming pattern in Go, RPC, deadlock issue in synchronous RPC, etc
+
+[Lecture 6: Fault Tolerance: Raft (1) - YouTube](https://www.youtube.com/watch?v=64Zp3tzNbpE)
+
+* What happen if leader half-failed, e.g., outgoing traffic (heartbeat) is fine, but incoming traffic (client req) is not fine? Can the system makes progress? Nope… because heartbeat prevents leader election process from other followers
+* At most one leader per term (strong invariant). What about no leader? That's fine. Recall at-most semantic
+    - At each term, each node only votes once. The node who starts the election will vote for itself
+    - No one allowed to send AE unless it is the leader for that term
+* @58:35  How does Raft reduce split vote? Randomized timer. Why? If all of them detected a leader is dead at the same time and starts election, then split votes is likely to happen. Recall that if you start an election, then you will vote yourself and requestVotes from others. With randomized timer, then we reduced the chance of parallel leader elections
+    - @1:00:40:  How to determine the minimum and maximum of election timer before kicking off an election? For min, of course, it is at least heatbeat AE interval, but give it 2 or 3x slack since it might not be because of leader fails, but the heartbeat packet is dropped
+* @1:07:00  Before leader failed, it sends AE to a subset of Followers, and then crashes before committing
+
+[Lecture 7: Fault Tolerance: Raft (2) - YouTube](https://www.youtube.com/watch?v=4r8Mz3MMivY&list=PLrw6a1wE39_tb2fErI4-WkMbsvGQk9_UB)
+
+* @10:00  criterion for becoming a new leader. Is the one who starts the election first always wins? Recall Lecture06 about election timer. Well, which nodes start the election is just one of the criteria to win election. Refer paper Figure 2, especially the behavior for RequestVotes RPC and Candidates
+* @21:00  rollback scheme. Refer implementation at "eliben, Raft part3: Optimizing AppendEntries conflict resolution"
+* @32:45  Discussion on the volatile and persistent, figure 2 top left. Why some fields can be volatile? Why some needs to be persistent?
+    - Persisting is very expensive, especially on hard disk
+    - How to have high perf? SSD, battery backed DRAM
+* @50:00  Log compaction and snapshot
+* @1:04:10  Correctness - linearizability
+
 ## How to use this repository
 
 You can read the code, but I'd also encourage you to run tests and observe the
